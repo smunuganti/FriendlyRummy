@@ -3,149 +3,162 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Friendly Rummy | Tournament Edition</title>
+    <title>Friendly Rummy | Santosh Pro Tournament</title>
     <style>
-        :root { --felt: #1a472a; --gold: #f1c40f; --card-w: 65px; --card-h: 95px; }
+        :root { --felt: #1a472a; --gold: #f1c40f; --card-w: 62px; --card-h: 90px; }
         body { background: var(--felt); color: white; font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; flex-direction: column; align-items: center; height: 100vh; overflow: hidden; }
 
-        /* --- REALISTIC CARD DESIGN --- */
-        .card { 
-            width: var(--card-w); height: var(--card-h); background: white; border-radius: 6px; 
-            color: black; position: relative; display: flex; flex-direction: column; 
-            justify-content: space-between; padding: 5px; box-sizing: border-box;
-            box-shadow: 2px 4px 10px rgba(0,0,0,0.4); cursor: pointer; border: 1px solid #ccc;
-            margin-left: -25px; transition: transform 0.2s, box-shadow 0.2s; user-select: none;
-        }
+        /* --- UI & SCOREBOARD --- */
+        #score-panel { position: absolute; top: 15px; right: 15px; background: rgba(0,0,0,0.9); border: 2px solid var(--gold); border-radius: 12px; width: 220px; max-height: 200px; overflow-y: auto; z-index: 1000; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        table { width: 100%; border-collapse: collapse; font-size: 0.8rem; text-align: center; }
+        th { background: var(--gold); color: #1a472a; padding: 5px; position: sticky; top: 0; }
+        td { padding: 6px; border-bottom: 1px solid #444; }
+        .total-row { background: #333; font-weight: bold; color: var(--gold); }
+
+        /* --- SANTOSH THE BOT --- */
+        #santosh-zone { margin-top: 10px; text-align: center; display: flex; flex-direction: column; align-items: center; }
+        .bubble { background: white; color: black; padding: 8px 15px; border-radius: 15px; font-size: 0.85rem; font-weight: bold; margin-bottom: 8px; position: relative; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        .bot-head { width: 60px; height: 45px; background: #34495e; border-radius: 10px; position: relative; border: 2px solid #222; }
+        .eye { position: absolute; width: 7px; height: 7px; background: #00ffcc; border-radius: 50%; top: 15px; box-shadow: 0 0 8px #00ffcc; }
+        .eye.left { left: 12px; } .eye.right { right: 12px; }
+
+        /* --- GAME TABLE --- */
+        .table { width: 90%; height: 240px; border: 10px solid #0b2415; border-radius: 120px; display: flex; justify-content: center; align-items: center; margin: 15px; background: radial-gradient(circle, #245c36, #1a472a); box-shadow: inset 0 0 60px black; position: relative; }
+        .wild-joker-slot { position: absolute; left: 10%; top: 40%; transform: rotate(-90deg); z-index: 1; }
+
+        /* --- CARDS --- */
+        .card { width: var(--card-w); height: var(--card-h); background: white; border-radius: 6px; color: black; position: relative; display: flex; flex-direction: column; justify-content: space-between; padding: 5px; box-sizing: border-box; box-shadow: 2px 4px 8px rgba(0,0,0,0.4); margin-left: -32px; border: 1px solid #ccc; font-weight: bold; cursor: pointer; transition: 0.2s; }
         .card:first-child { margin-left: 0; }
         .card.red { color: #d40000; }
-        .card .rank-top { align-self: flex-start; font-size: 1rem; line-height: 1; font-weight: 900; }
-        .card .suit-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 2rem; opacity: 0.15; }
-        .card .rank-bottom { align-self: flex-end; font-size: 1rem; line-height: 1; transform: rotate(180deg); font-weight: 900; }
-        
-        .card.back { background: #2c3e50; border: 2px solid white; color: transparent; background-image: radial-gradient(circle, #34495e 10%, transparent 11%); background-size: 10px 10px; }
-        .card.selected { transform: translateY(-30px); z-index: 100; border: 3px solid var(--gold); box-shadow: 0 10px 20px rgba(0,0,0,0.6); }
+        .card.selected { transform: translateY(-35px); border: 3px solid var(--gold); z-index: 50; }
+        .card.spacer { margin-right: 35px !important; }
+        .card.back { background: #2c3e50; border: 1.5px solid white; background-image: radial-gradient(#fff 10%, transparent 11%); background-size: 8px 8px; }
+        .card.is-joker::after { content: '★'; position: absolute; top: 2px; right: 2px; color: var(--gold); font-size: 0.7rem; }
 
-        /* --- UI COMPONENTS --- */
-        #pool-board { position: absolute; top: 15px; left: 15px; background: rgba(0,0,0,0.8); padding: 12px; border-radius: 10px; border-left: 5px solid var(--gold); min-width: 160px; }
-        .hp-bar { height: 6px; background: #333; border-radius: 3px; margin: 5px 0; overflow: hidden; }
-        .hp-fill { height: 100%; background: var(--gold); transition: width 0.5s; }
-
-        .table { width: 90%; height: 280px; border: 10px solid #0b2415; border-radius: 120px; display: flex; justify-content: center; align-items: center; margin: 20px; background: radial-gradient(circle, #245c36, #1a472a); box-shadow: inset 0 0 50px black; }
-        .hand { display: flex; justify-content: center; padding: 20px; min-height: 120px; margin-top: 20px; }
+        /* --- CONTROLS --- */
+        .hand { display: flex; justify-content: center; padding: 25px; min-height: 130px; }
         .controls { display: flex; gap: 10px; margin-bottom: 20px; }
+        button { padding: 12px 20px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; background: var(--gold); color: #2c3e50; }
+        .btn-show { background: #27ae60; color: white; }
         
-        button { padding: 12px 20px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; background: var(--gold); color: #2c3e50; box-shadow: 0 4px #b8860b; }
-        button:active { transform: translateY(2px); box-shadow: 0 1px #b8860b; }
-        .btn-drop { background: #e67e22; color: white; box-shadow: 0 4px #a05819; }
-        .btn-show { background: #27ae60; color: white; box-shadow: 0 4px #1e8449; }
+        /* --- ANIMATIONS --- */
+        #deal-anim-layer { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2000; }
+        @keyframes dealOut { from { top: 40%; left: 50%; opacity: 1; } to { top: 80%; opacity: 0; } }
     </style>
 </head>
 <body>
 
-    <div id="pool-board">
-        <strong>201 Pool Match</strong>
-        <div style="font-size: 0.85rem; margin-top:5px;">You: <span id="p-score">0</span> | Oliver: <span id="b-score">0</span></div>
-        <div class="hp-bar"><div id="p-fill" class="hp-fill"></div></div>
-        <div id="status" style="font-size: 0.75rem; color: var(--gold);">Ready to deal...</div>
+    <div id="score-panel">
+        <table>
+            <thead><tr><th>Rnd</th><th>You</th><th>Santosh</th></tr></thead>
+            <tbody id="score-body"></tbody>
+            <tfoot><tr class="total-row"><td>TOT</td><td id="tot-p">0</td><td id="tot-s">0</td></tr></tfoot>
+        </table>
+    </div>
+
+    <div id="santosh-zone">
+        <div class="bubble" id="chat">Namaste! I'm Santosh.</div>
+        <div class="bot-head"><div class="eye left"></div><div class="eye right"></div></div>
     </div>
 
     <div class="table">
-        <div style="display: flex; gap: 30px;">
-            <div id="deck" class="card back" onclick="drawFromDeck()"></div>
-            <div id="discard-pile" class="card">?</div>
+        <div id="wj-area" class="wild-joker-slot"></div>
+        <div style="display:flex; gap:30px;">
+            <div class="card back" onclick="draw('deck')">Deck</div>
+            <div id="discard-pile" class="card" onclick="draw('discard')">?</div>
         </div>
     </div>
 
-    <div class="hand" id="player-hand"></div>
+    <div class="hand" id="hand-area"></div>
 
     <div class="controls">
         <button onclick="groupCards()">📦 Group</button>
-        <button class="btn-drop" id="drop-btn" onclick="handleDrop()">First Drop (20)</button>
-        <button class="btn-show" onclick="declareShow()">🏁 SHOW</button>
-        <button style="background: #34495e; color: white;" onclick="autoSort()">🪄 Sort</button>
+        <button style="background:#e67e22; color:white;" onclick="discardAction()">🗑️ Discard</button>
+        <button class="btn-show" onclick="handleShow()">🏁 SHOW</button>
+        <button style="background:#7f8c8d; color:white;" onclick="handleDrop()">🏳️ Drop</button>
     </div>
 
     <script>
-        const suits = ['♥', '♦', '♣', '♠'];
-        const ranks = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
-        const rankVal = {'A':1, '2':2, '3':3, '4':4, '5':5, '6':6, '7':7, '8':8, '9':9, '10':10, 'J':11, 'Q':12, 'K':13};
-        
-        let pPool = 0, bPool = 0, moves = 0;
-        let pHand = [], deck = [], discard = [], selected = [];
+        const suits = ['♥', '♦', '♣', '♠'], ranks = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+        let pHand = [], deck = [], discard = [], wildJoker = null, selected = [], pTotal = 0, sTotal = 0, round = 1, moves = 0, spacers = [];
+
+        function save() { localStorage.setItem('rummy_save', JSON.stringify({pTotal, sTotal, round})); }
 
         function init() {
-            if (pPool >= 201) { alert("You hit 201. Oliver wins!"); pPool = 0; bPool = 0; }
-            if (bPool >= 201) { alert("Oliver hit 201. You win!"); pPool = 0; bPool = 0; }
+            const saved = JSON.parse(localStorage.getItem('rummy_save'));
+            if(saved && round === 1) { pTotal = saved.pTotal; sTotal = saved.sTotal; round = saved.round; }
             
             deck = [];
-            for(let i=0; i<2; i++) for(let s of suits) for(let r of ranks) deck.push({r, s, c: (s==='♥'||s==='♦')?'red':'black', v: rankVal[r]});
+            for(let s of suits) for(let r of ranks) deck.push({r, s, c:(s==='♥'||s==='♦')?'red':'black'});
             deck.sort(() => Math.random() - 0.5);
+            
+            wildJoker = deck.pop();
             pHand = deck.splice(0, 13);
             discard = [deck.pop()];
-            moves = 0; selected = [];
-            updateUI();
+            moves = 0; selected = []; spacers = [];
+            render();
         }
 
-        function createCardHTML(card, isSelected, index) {
-            const div = document.createElement('div');
-            div.className = `card ${card.c} ${isSelected ? 'selected' : ''}`;
-            div.innerHTML = `
-                <div class="rank-top">${card.r}<br>${card.s}</div>
-                <div class="suit-center">${card.s}</div>
-                <div class="rank-bottom">${card.r}<br>${card.s}</div>
-            `;
-            div.onclick = () => {
-                const pos = selected.indexOf(index);
-                if (pos > -1) selected.splice(pos, 1); else selected.push(index);
-                updateUI();
-            };
-            return div;
-        }
-
-        function updateUI() {
-            const area = document.getElementById('player-hand'); area.innerHTML = '';
-            pHand.forEach((c, i) => area.appendChild(createCardHTML(c, selected.includes(i), i)));
+        function render() {
+            const area = document.getElementById('hand-area'); area.innerHTML = '';
+            pHand.forEach((c, i) => {
+                const div = document.createElement('div');
+                div.className = `card ${c.c} ${selected.includes(i)?'selected':''} ${spacers.includes(i)?'spacer':''} ${c.r===wildJoker.r?'is-joker':''}`;
+                div.innerHTML = `<span>${c.r}<br>${c.s}</span><span style="align-self:flex-end; transform:rotate(180deg)">${c.r}<br>${c.s}</span>`;
+                div.onclick = () => { selected.includes(i)?selected=selected.filter(x=>x!==i):selected.push(i); render(); };
+                area.appendChild(div);
+            });
+            const top = discard[discard.length-1];
+            document.getElementById('discard-pile').className = `card ${top.c} ${top.r===wildJoker.r?'is-joker':''}`;
+            document.getElementById('discard-pile').innerHTML = `<span>${top.r}<br>${top.s}</span>`;
             
-            const top = discard[discard.length - 1];
-            const dElem = document.getElementById('discard-pile');
-            dElem.className = `card ${top.c}`;
-            dElem.innerHTML = `<div class="rank-top">${top.r}<br>${top.s}</div><div class="suit-center">${top.s}</div><div class="rank-bottom">${top.r}<br>${top.s}</div>`;
-            
-            document.getElementById('p-score').innerText = pPool;
-            document.getElementById('b-score').innerText = bPool;
-            document.getElementById('p-fill').style.width = (pPool / 201 * 100) + "%";
-            document.getElementById('drop-btn').innerText = moves === 0 ? "First Drop (20)" : "Middle Drop (40)";
+            const wjArea = document.getElementById('wj-area');
+            wjArea.innerHTML = `<div class="card ${wildJoker.c}"><span>${wildJoker.r}<br>${wildJoker.s}</span></div>`;
+
+            document.getElementById('tot-p').innerText = pTotal;
+            document.getElementById('tot-s').innerText = sTotal;
         }
 
-        function drawFromDeck() {
-            if (pHand.length < 14) { pHand.push(deck.pop()); moves++; updateUI(); }
+        function draw(src) {
+            if(pHand.length < 14) {
+                pHand.push(src === 'deck' ? deck.pop() : discard.pop());
+                moves++; render();
+            }
         }
 
-        function handleDrop() {
-            let p = (moves === 0) ? 20 : 40;
-            if (confirm(`Drop this hand for ${p} points?`)) { pPool += p; init(); }
+        function discardAction() {
+            if(selected.length !== 1 || pHand.length < 14) return;
+            discard.push(pHand.splice(selected[0], 1)[0]);
+            selected = []; render();
+            setTimeout(() => { discard.push(deck.pop()); render(); }, 800);
         }
 
         function groupCards() {
-            if (selected.length < 2) return;
+            if(selected.length < 2) return;
             let moving = [];
-            selected.sort((a,b) => b-a).forEach(idx => moving.push(pHand.splice(idx, 1)[0]));
+            selected.sort((a,b)=>b-a).forEach(idx => moving.push(pHand.splice(idx,1)[0]));
             pHand = [...moving.reverse(), ...pHand];
-            selected = [];
-            updateUI();
+            spacers.push(moving.length - 1);
+            selected = []; render();
         }
 
-        function autoSort() {
-            pHand.sort((a,b) => a.s.localeCompare(b.s) || b.v - a.v);
-            updateUI();
+        function handleShow() {
+            if(pHand.length < 14) return;
+            let valid = confirm("Valid Pure Sequence + Second Sequence?");
+            if(valid) { sTotal += 40; } else { pTotal += 80; }
+            round++; save(); updateScoreTable(); init();
         }
 
-        function declareShow() {
-            if (pHand.length < 14) return alert("Draw a card first!");
-            if (confirm("Show Valid? (Requires Pure Sequence)")) {
-                let p = Math.floor(Math.random() * 50) + 20; bPool += p;
-            } else { pPool += 80; }
-            init();
+        function handleDrop() {
+            let pen = moves === 0 ? 20 : 40;
+            if(confirm(`Drop for ${pen} points?`)) { pTotal += pen; round++; save(); updateScoreTable(); init(); }
+        }
+
+        function updateScoreTable() {
+            const body = document.getElementById('score-body');
+            const row = body.insertRow();
+            row.innerHTML = `<td>${round-1}</td><td>-</td><td>-</td>`;
+            if(pTotal >= 201 || sTotal >= 201) { alert("Match Finished!"); localStorage.clear(); location.reload(); }
         }
 
         init();
