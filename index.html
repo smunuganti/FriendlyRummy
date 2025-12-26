@@ -2,166 +2,221 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Friendly Rummy | Santosh Pro Tournament</title>
+    <title>Friendly Rummy | Santosh AI</title>
     <style>
         :root { --felt: #1a472a; --gold: #f1c40f; --card-w: 62px; --card-h: 90px; }
-        body { background: var(--felt); color: white; font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; flex-direction: column; align-items: center; height: 100vh; overflow: hidden; }
+        body { background: #0a2113; color: white; font-family: 'Segoe UI', sans-serif; margin: 0; overflow: hidden; }
 
-        /* --- UI & SCOREBOARD --- */
-        #score-panel { position: absolute; top: 15px; right: 15px; background: rgba(0,0,0,0.9); border: 2px solid var(--gold); border-radius: 12px; width: 220px; max-height: 200px; overflow-y: auto; z-index: 1000; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        table { width: 100%; border-collapse: collapse; font-size: 0.8rem; text-align: center; }
-        th { background: var(--gold); color: #1a472a; padding: 5px; position: sticky; top: 0; }
-        td { padding: 6px; border-bottom: 1px solid #444; }
-        .total-row { background: #333; font-weight: bold; color: var(--gold); }
+        /* --- HOME PAGE --- */
+        #home-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle at center, #2a633d 0%, #0a2113 100%);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 2000; text-align: center; padding: 20px;
+        }
+        .main-title { font-size: 3.2rem; color: var(--gold); margin: 0; text-shadow: 0 4px 15px rgba(0,0,0,0.6); font-weight: 800; }
+        .sub-title { font-size: 1.2rem; color: #ddd; margin: 10px 0 40px 0; max-width: 500px; line-height: 1.4; font-style: italic; }
+        
+        /* Santosh AI Avatar on Home */
+        .ai-profile { background: rgba(0,0,0,0.3); padding: 20px; border-radius: 20px; border: 1px solid rgba(241, 196, 15, 0.3); margin-bottom: 30px; }
+        .bot-face { width: 70px; height: 55px; background: #34495e; border-radius: 12px; margin: 0 auto 10px; position: relative; border: 2px solid #222; }
+        .bot-face::before, .bot-face::after { content: ''; position: absolute; width: 8px; height: 8px; background: #00ffcc; border-radius: 50%; top: 15px; box-shadow: 0 0 8px #00ffcc; }
+        .bot-face::before { left: 15px; } .bot-face::after { right: 15px; }
 
-        /* --- SANTOSH THE BOT --- */
-        #santosh-zone { margin-top: 10px; text-align: center; display: flex; flex-direction: column; align-items: center; }
-        .bubble { background: white; color: black; padding: 8px 15px; border-radius: 15px; font-size: 0.85rem; font-weight: bold; margin-bottom: 8px; position: relative; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
-        .bot-head { width: 60px; height: 45px; background: #34495e; border-radius: 10px; position: relative; border: 2px solid #222; }
-        .eye { position: absolute; width: 7px; height: 7px; background: #00ffcc; border-radius: 50%; top: 15px; box-shadow: 0 0 8px #00ffcc; }
-        .eye.left { left: 12px; } .eye.right { right: 12px; }
+        .last-score { font-size: 0.9rem; color: var(--gold); margin-bottom: 20px; font-weight: bold; }
 
-        /* --- GAME TABLE --- */
-        .table { width: 90%; height: 240px; border: 10px solid #0b2415; border-radius: 120px; display: flex; justify-content: center; align-items: center; margin: 15px; background: radial-gradient(circle, #245c36, #1a472a); box-shadow: inset 0 0 60px black; position: relative; }
-        .wild-joker-slot { position: absolute; left: 10%; top: 40%; transform: rotate(-90deg); z-index: 1; }
+        .menu-btn { 
+            width: 240px; padding: 16px; margin: 10px; border: none; border-radius: 50px;
+            background: var(--gold); color: #1a472a; font-weight: bold; font-size: 1.1rem;
+            cursor: pointer; box-shadow: 0 6px 20px rgba(0,0,0,0.4); transition: 0.3s;
+        }
+        .menu-btn:hover { transform: translateY(-3px); filter: brightness(1.1); }
 
-        /* --- CARDS --- */
-        .card { width: var(--card-w); height: var(--card-h); background: white; border-radius: 6px; color: black; position: relative; display: flex; flex-direction: column; justify-content: space-between; padding: 5px; box-sizing: border-box; box-shadow: 2px 4px 8px rgba(0,0,0,0.4); margin-left: -32px; border: 1px solid #ccc; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        /* --- GAME INTERFACE --- */
+        #game-ui { display: none; flex-direction: column; align-items: center; height: 100vh; width: 100%; }
+        #top-nav {
+            width: 100%; padding: 12px 25px; display: flex; justify-content: space-between; 
+            align-items: center; background: rgba(0,0,0,0.4); border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .home-btn { background: none; border: 1.5px solid var(--gold); color: var(--gold); padding: 8px 18px; border-radius: 20px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        .home-btn:hover { background: var(--gold); color: #1a472a; }
+
+        /* --- CIRCULAR TABLE --- */
+        .table-3d { 
+            position: relative; width: 500px; height: 320px; margin-top: 40px;
+            background: radial-gradient(circle, #2a633d 0%, #1a472a 75%, #0b2415 100%);
+            border: 12px solid #3d2b1f; border-radius: 50%;
+            box-shadow: inset 0 0 100px rgba(0,0,0,0.9), 0 20px 60px rgba(0,0,0,0.7);
+            display: flex; justify-content: center; align-items: center;
+        }
+        .deck-area { display: flex; gap: 40px; position: relative; }
+        .joker-card { position: absolute; left: -15px; top: 8px; transform: rotate(-90deg); z-index: 1; border: 2px solid var(--gold) !important; }
+
+        /* --- HAND & GROUPS --- */
+        #hand-groups { display: flex; gap: 15px; margin-top: 40px; }
+        .group-slot { display: flex; background: rgba(0,0,0,0.25); border-radius: 10px; padding: 15px 8px; min-width: 70px; border: 1px solid rgba(255,255,255,0.05); }
+        .card { 
+            width: var(--card-w); height: var(--card-h); background: white; border-radius: 6px; color: black; 
+            position: relative; display: flex; flex-direction: column; justify-content: space-between; padding: 6px; 
+            box-sizing: border-box; box-shadow: 2px 4px 8px rgba(0,0,0,0.5); cursor: pointer; font-weight: bold; 
+            margin-left: -35px; border: 1px solid #ccc;
+        }
         .card:first-child { margin-left: 0; }
         .card.red { color: #d40000; }
-        .card.selected { transform: translateY(-35px); border: 3px solid var(--gold); z-index: 50; }
-        .card.spacer { margin-right: 35px !important; }
-        .card.back { background: #2c3e50; border: 1.5px solid white; background-image: radial-gradient(#fff 10%, transparent 11%); background-size: 8px 8px; }
-        .card.is-joker::after { content: '★'; position: absolute; top: 2px; right: 2px; color: var(--gold); font-size: 0.7rem; }
+        .card.selected { transform: translateY(-30px); border: 2.5px solid var(--gold); box-shadow: 0 10px 20px rgba(0,0,0,0.6); }
+        .card.back { background: #2c3e50; border: 2px solid white; background-image: radial-gradient(#fff 10%, transparent 11%); background-size: 8px 8px; z-index: 5; }
 
-        /* --- CONTROLS --- */
-        .hand { display: flex; justify-content: center; padding: 25px; min-height: 130px; }
-        .controls { display: flex; gap: 10px; margin-bottom: 20px; }
-        button { padding: 12px 20px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; background: var(--gold); color: #2c3e50; }
-        .btn-show { background: #27ae60; color: white; }
-        
-        /* --- ANIMATIONS --- */
-        #deal-anim-layer { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2000; }
-        @keyframes dealOut { from { top: 40%; left: 50%; opacity: 1; } to { top: 80%; opacity: 0; } }
+        .controls { display: flex; gap: 12px; margin-top: 25px; }
+        .action-btn { padding: 12px 24px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; background: var(--gold); color: #1a472a; }
     </style>
 </head>
 <body>
 
-    <div id="score-panel">
-        <table>
-            <thead><tr><th>Rnd</th><th>You</th><th>Santosh</th></tr></thead>
-            <tbody id="score-body"></tbody>
-            <tfoot><tr class="total-row"><td>TOT</td><td id="tot-p">0</td><td id="tot-s">0</td></tr></tfoot>
-        </table>
-    </div>
-
-    <div id="santosh-zone">
-        <div class="bubble" id="chat">Namaste! I'm Santosh.</div>
-        <div class="bot-head"><div class="eye left"></div><div class="eye right"></div></div>
-    </div>
-
-    <div class="table">
-        <div id="wj-area" class="wild-joker-slot"></div>
-        <div style="display:flex; gap:30px;">
-            <div class="card back" onclick="draw('deck')">Deck</div>
-            <div id="discard-pile" class="card" onclick="draw('discard')">?</div>
+    <div id="home-screen">
+        <div class="ai-profile">
+            <div class="bot-face"></div>
+            <p style="margin:0; font-weight:bold; color:var(--gold);">SANTOSH AI</p>
+            <p style="margin:0; font-size:0.7rem; color:#aaa;">Level: Grandmaster</p>
         </div>
+
+        <h1 class="main-title">Friendly Rummy</h1>
+        <p class="sub-title">Play with <strong>Santosh AI</strong> to test your rummy skills and master the 201 Pool tournament format.</p>
+        
+        <div id="last-record" class="last-score"></div>
+
+        <button class="menu-btn" onclick="launchGame()">PLAY MATCH</button>
+        <button class="menu-btn" style="background:transparent; border:1px solid var(--gold); color:var(--gold);" onclick="showRules()">HOW TO PLAY</button>
     </div>
 
-    <div class="hand" id="hand-area"></div>
+    <div id="game-ui">
+        <div id="top-nav">
+            <button class="home-btn" onclick="exitToHome()">🏠 HOME</button>
+            <div id="match-score" style="font-weight: bold; color: var(--gold);">You: 0 | Santosh: 0</div>
+            <div style="font-size: 0.8rem; opacity: 0.8;">201 Pool Tournament</div>
+        </div>
 
-    <div class="controls">
-        <button onclick="groupCards()">📦 Group</button>
-        <button style="background:#e67e22; color:white;" onclick="discardAction()">🗑️ Discard</button>
-        <button class="btn-show" onclick="handleShow()">🏁 SHOW</button>
-        <button style="background:#7f8c8d; color:white;" onclick="handleDrop()">🏳️ Drop</button>
+        <div class="table-3d">
+            <div class="deck-area">
+                <div id="wj-card" class="card joker-card"></div>
+                <div class="card back" onclick="draw('deck')"></div>
+                <div id="discard-p" class="card" onclick="draw('discard')"></div>
+            </div>
+        </div>
+
+        <div id="hand-groups">
+            <div class="group-slot" id="g0" ondrop="drop(event, 0)" ondragover="allow(event)"></div>
+            <div class="group-slot" id="g1" ondrop="drop(event, 1)" ondragover="allow(event)"></div>
+            <div class="group-slot" id="g2" ondrop="drop(event, 2)" ondragover="allow(event)"></div>
+            <div class="group-slot" id="g3" ondrop="drop(event, 3)" ondragover="allow(event)"></div>
+        </div>
+
+        <div class="controls">
+            <button class="action-btn" onclick="organize()">🪄 3-3-3-4</button>
+            <button class="action-btn" style="background:#e67e22; color:white;" onclick="doDiscard()">🗑️ DISCARD</button>
+            <button class="action-btn" style="background:#27ae60; color:white;" onclick="doShow()">🏁 SHOW</button>
+        </div>
     </div>
 
     <script>
         const suits = ['♥', '♦', '♣', '♠'], ranks = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
-        let pHand = [], deck = [], discard = [], wildJoker = null, selected = [], pTotal = 0, sTotal = 0, round = 1, moves = 0, spacers = [];
+        let groups = [[], [], [], []], deck = [], discard = [], wildJoker = null, selected = null, pScore = 0, sScore = 0;
 
-        function save() { localStorage.setItem('rummy_save', JSON.stringify({pTotal, sTotal, round})); }
+        window.onload = () => {
+            const last = localStorage.getItem('last_rummy_score');
+            if(last) document.getElementById('last-record').innerText = `Last Match: ${last}`;
+        };
 
-        function init() {
-            const saved = JSON.parse(localStorage.getItem('rummy_save'));
-            if(saved && round === 1) { pTotal = saved.pTotal; sTotal = saved.sTotal; round = saved.round; }
-            
+        function launchGame() {
+            document.getElementById('home-screen').style.display = 'none';
+            document.getElementById('game-ui').style.display = 'flex';
+            resetRound();
+        }
+
+        function exitToHome() {
+            if(confirm("Exit to dashboard? Your current round score will be lost.")) {
+                localStorage.setItem('last_rummy_score', `You ${pScore} - ${sScore} Santosh`);
+                location.reload();
+            }
+        }
+
+        function resetRound() {
             deck = [];
             for(let s of suits) for(let r of ranks) deck.push({r, s, c:(s==='♥'||s==='♦')?'red':'black'});
             deck.sort(() => Math.random() - 0.5);
-            
             wildJoker = deck.pop();
-            pHand = deck.splice(0, 13);
+            let fullHand = deck.splice(0, 13);
+            groups = [fullHand.splice(0,3), fullHand.splice(0,3), fullHand.splice(0,3), fullHand];
             discard = [deck.pop()];
-            moves = 0; selected = []; spacers = [];
             render();
         }
 
         function render() {
-            const area = document.getElementById('hand-area'); area.innerHTML = '';
-            pHand.forEach((c, i) => {
-                const div = document.createElement('div');
-                div.className = `card ${c.c} ${selected.includes(i)?'selected':''} ${spacers.includes(i)?'spacer':''} ${c.r===wildJoker.r?'is-joker':''}`;
-                div.innerHTML = `<span>${c.r}<br>${c.s}</span><span style="align-self:flex-end; transform:rotate(180deg)">${c.r}<br>${c.s}</span>`;
-                div.onclick = () => { selected.includes(i)?selected=selected.filter(x=>x!==i):selected.push(i); render(); };
-                area.appendChild(div);
-            });
-            const top = discard[discard.length-1];
-            document.getElementById('discard-pile').className = `card ${top.c} ${top.r===wildJoker.r?'is-joker':''}`;
-            document.getElementById('discard-pile').innerHTML = `<span>${top.r}<br>${top.s}</span>`;
+            document.getElementById('match-score').innerText = `You: ${pScore} | Santosh: ${sScore}`;
+            const wj = document.getElementById('wj-card');
+            wj.className = `card joker-card ${wildJoker.c}`;
+            wj.innerHTML = `<span>${wildJoker.r}<br>${wildJoker.s}</span>`;
             
-            const wjArea = document.getElementById('wj-area');
-            wjArea.innerHTML = `<div class="card ${wildJoker.c}"><span>${wildJoker.r}<br>${wildJoker.s}</span></div>`;
+            const dp = document.getElementById('discard-p');
+            const top = discard[discard.length-1];
+            dp.className = `card ${top.c}`;
+            dp.innerHTML = `<span>${top.r}<br>${top.s}</span>`;
 
-            document.getElementById('tot-p').innerText = pTotal;
-            document.getElementById('tot-s').innerText = sTotal;
+            groups.forEach((group, gIdx) => {
+                const zone = document.getElementById(`g${gIdx}`);
+                zone.innerHTML = '';
+                group.forEach((card, cIdx) => {
+                    const div = document.createElement('div');
+                    const isSel = selected?.g === gIdx && selected?.c === cIdx;
+                    div.className = `card ${card.c} ${isSel ? 'selected' : ''}`;
+                    div.draggable = true;
+                    div.innerHTML = `<span>${card.r}<br>${card.s}</span><span style="align-self:flex-end; transform:rotate(180deg)">${card.r}<br>${card.s}</span>`;
+                    div.onclick = () => { selected = {g: gIdx, c: cIdx}; render(); };
+                    div.ondragstart = (e) => { e.dataTransfer.setData("text", JSON.stringify({gIdx, cIdx})); };
+                    zone.appendChild(div);
+                });
+            });
+        }
+
+        function allow(e) { e.preventDefault(); }
+        function drop(e, targetGIdx) {
+            e.preventDefault();
+            const data = JSON.parse(e.dataTransfer.getData("text"));
+            const card = groups[data.gIdx].splice(data.cIdx, 1)[0];
+            groups[targetGIdx].push(card);
+            render();
         }
 
         function draw(src) {
-            if(pHand.length < 14) {
-                pHand.push(src === 'deck' ? deck.pop() : discard.pop());
-                moves++; render();
-            }
+            if(groups.flat().length >= 14) return;
+            groups[3].push(src === 'deck' ? deck.pop() : discard.pop());
+            render();
         }
 
-        function discardAction() {
-            if(selected.length !== 1 || pHand.length < 14) return;
-            discard.push(pHand.splice(selected[0], 1)[0]);
-            selected = []; render();
-            setTimeout(() => { discard.push(deck.pop()); render(); }, 800);
+        function doDiscard() {
+            if(!selected) return;
+            discard.push(groups[selected.g].splice(selected.c, 1)[0]);
+            selected = null; render();
+            // Simple AI turn
+            setTimeout(() => { discard.push(deck.pop()); render(); }, 600);
         }
 
-        function groupCards() {
-            if(selected.length < 2) return;
-            let moving = [];
-            selected.sort((a,b)=>b-a).forEach(idx => moving.push(pHand.splice(idx,1)[0]));
-            pHand = [...moving.reverse(), ...pHand];
-            spacers.push(moving.length - 1);
-            selected = []; render();
+        function organize() {
+            let flat = groups.flat();
+            groups = [flat.splice(0,3), flat.splice(0,3), flat.splice(0,3), flat];
+            render();
         }
 
-        function handleShow() {
-            if(pHand.length < 14) return;
-            let valid = confirm("Valid Pure Sequence + Second Sequence?");
-            if(valid) { sTotal += 40; } else { pTotal += 80; }
-            round++; save(); updateScoreTable(); init();
+        function doShow() {
+            if(confirm("Valid Pure Sequence?")) { sScore += 40; } else { pScore += 80; }
+            if(pScore >= 201 || sScore >= 201) { 
+                alert(pScore >= 201 ? "Santosh Wins!" : "You Win!"); 
+                exitToHome(); 
+            } else { resetRound(); }
         }
 
-        function handleDrop() {
-            let pen = moves === 0 ? 20 : 40;
-            if(confirm(`Drop for ${pen} points?`)) { pTotal += pen; round++; save(); updateScoreTable(); init(); }
+        function showRules() {
+            alert("1. Create 3-3-3-4 groups.\n2. One PURE sequence is required (No Joker).\n3. Match continues until someone hits 201 points.");
         }
-
-        function updateScoreTable() {
-            const body = document.getElementById('score-body');
-            const row = body.insertRow();
-            row.innerHTML = `<td>${round-1}</td><td>-</td><td>-</td>`;
-            if(pTotal >= 201 || sTotal >= 201) { alert("Match Finished!"); localStorage.clear(); location.reload(); }
-        }
-
-        init();
     </script>
 </body>
 </html>
