@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Friendly Rummy | Play Oliver</title>
+    <style>
+        :root { --felt-green: #2c5e2e; --table-border: #1a3c1a; --card-back: #2c3e50; }
+        body { background-color: var(--felt-green); color: white; font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; flex-direction: column; align-items: center; height: 100vh; overflow: hidden; }
+
+        /* --- SPLASH & MODALS --- */
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle, #2c5e2e 0%, #1a3c1a 100%); z-index: 20000; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: 0.5s; }
+        .hero-card { width: 70px; height: 100px; background: white; border-radius: 8px; color: black; display: flex; justify-content: center; align-items: center; font-size: 1.5rem; font-weight: bold; box-shadow: 0 5px 15px rgba(0,0,0,0.3); animation: float 3s infinite ease-in-out; }
+        @keyframes float { 0%, 100% { transform: translateY(0) rotate(5deg); } 50% { transform: translateY(-15px) rotate(-5deg); } }
+        
+        /* --- GAMEBOARD --- */
+        .table { width: 90%; max-width: 850px; height: 380px; background: radial-gradient(circle, #3d7a3f 0%, var(--felt-green) 100%); border: 8px solid var(--table-border); border-radius: 150px; margin-top: 20px; display: flex; justify-content: center; align-items: center; position: relative; box-shadow: inset 0 0 50px rgba(0,0,0,0.5); }
+        .card { width: 75px; height: 110px; background: white; border-radius: 6px; color: black; display: flex; flex-direction: column; justify-content: center; align-items: center; font-weight: bold; font-size: 1rem; box-shadow: 2px 2px 5px rgba(0,0,0,0.3); cursor: pointer; transition: 0.3s; position: relative; }
+        .card.red { color: #d00; }
+        .card.back { background: var(--card-back); border: 2px solid white; color: transparent; background-image: repeating-linear-gradient(45deg, rgba(255,255,255,0.1) 0, rgba(255,255,255,0.1) 10px, transparent 10px, transparent 20px); }
+        
+        .hand { display: flex; gap: 8px; margin-top: 15px; min-height: 120px; }
+        .hand .card:hover { transform: translateY(-20px); z-index: 10; border: 2px solid #f1c40f; }
+
+        .controls { margin-top: 15px; display: flex; gap: 8px; }
+        button { padding: 8px 16px; border-radius: 6px; border: none; cursor: pointer; font-weight: bold; background: #f1c40f; color: #2c3e50; }
+        #status { font-style: italic; color: #bdc3c7; margin: 10px 0; }
+        #scoreboard { position: absolute; top: 10px; right: 20px; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 8px; font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+
+    <div id="splash" class="overlay">
+        <h1 style="font-size: 3rem; color: #f1c40f; margin-bottom: 10px;">Friendly Rummy</h1>
+        <div style="display: flex; gap: 10px; margin-bottom: 30px;">
+            <div class="hero-card">J♥</div><div class="hero-card" style="color:#d00">Q♦</div>
+            <div class="hero-card">K♣</div><div class="hero-card" style="color:#d00">A♠</div>
+        </div>
+        <button onclick="startGame()" style="font-size: 1.2rem; padding: 15px 40px;">Play Against Oliver</button>
+    </div>
+
+    <div id="end-modal" class="overlay" style="display:none; background: rgba(0,0,0,0.9);">
+        <div style="background: white; color: #333; padding: 40px; border-radius: 20px; text-align: center;">
+            <div style="font-size: 4rem;">🏆</div>
+            <h2 id="win-msg">You Won the Round!</h2>
+            <p id="win-details"></p>
+            <button onclick="nextRound()" style="width: 100%;">Next Round</button>
+        </div>
+    </div>
+
+    <div id="scoreboard">
+        <strong>Match Score</strong>
+        <div>You: <span id="p-score">0</span></div>
+        <div>Oliver: <span id="b-score">0</span></div>
+    </div>
+
+    <div class="hand" id="bot-hand" style="transform: scale(0.7); opacity: 0.7;"></div>
+
+    <div class="table">
+        <div style="display: flex; gap: 20px;">
+            <div id="deck" class="card back" onclick="drawCard()">Deck</div>
+            <div id="discard-pile" class="card">?</div>
+        </div>
+    </div>
+
+    <div class="hand" id="player-hand"></div>
+    <p id="status">Oliver is waiting for you...</p>
+
+    <div class="controls">
+        <button onclick="sortHand('suit')">Sort Suit</button>
+        <button onclick="sortHand('rank')">Sort Rank</button>
+        <button onclick="declareHand()" style="background: #27ae60; color: white;">Declare</button>
+    </div>
+
+    <script>
+        const suits = ['♥', '♦', '♣', '♠'];
+        const ranks = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+        const valMap = {'A':15, 'K':10, 'Q':10, 'J':10, '10':10, '9':9, '8':8, '7':7, '6':6, '5':5, '4':4, '3':3, '2':2};
+        
+        let deck = [], playerHand = [], botHand = [], discardPile = [];
+        let pMatchScore = 0, bMatchScore = 0;
+        let turn = 'player'; // 'player' or 'bot'
+
+        function startGame() {
+            document.getElementById('splash').style.display = 'none';
+            nextRound();
+        }
+
+        function nextRound() {
+            document.getElementById('end-modal').style.display = 'none';
+            deck = [];
+            for (let s of suits) for (let r of ranks) deck.push({r, s, c: (s==='♥'||s==='♦')?'red':'black', v: valMap[r]});
+            deck.sort(() => Math.random() - 0.5);
+            playerHand = deck.splice(0, 7);
+            botHand = deck.splice(0, 7);
+            discardPile = [deck.pop()];
+            turn = 'player';
+            document.getElementById('status').innerText = "Your turn! Draw from the deck.";
+            render();
+        }
+
+        function render() {
+            const pArea = document.getElementById('player-hand'); pArea.innerHTML = '';
+            playerHand.forEach((card, i) => {
+                const div = document.createElement('div');
+                div.className = `card ${card.c}`;
+                div.innerHTML = `<span>${card.r}</span><span style="font-size:1.5rem">${card.s}</span>`;
+                div.onclick = () => discardCard(i);
+                pArea.appendChild(div);
+            });
+
+            const bArea = document.getElementById('bot-hand'); bArea.innerHTML = '';
+            botHand.forEach(() => { bArea.innerHTML += `<div class="card back"></div>`; });
+
+            const top = discardPile[discardPile.length - 1];
+            const dPile = document.getElementById('discard-pile');
+            dPile.className = `card ${top.c}`;
+            dPile.innerHTML = `<span>${top.r}</span><span style="font-size:1.5rem">${top.s}</span>`;
+        }
+
+        function drawCard() {
+            if (turn !== 'player' || playerHand.length >= 8) return;
+            playerHand.push(deck.pop());
+            render();
+            document.getElementById('status').innerText = "Now click a card in your hand to discard.";
+        }
+
+        async function discardCard(i) {
+            if (turn !== 'player' || playerHand.length < 8) return;
+            discardPile.push(playerHand.splice(i, 1)[0]);
+            turn = 'bot';
+            render();
+            botTurn();
+        }
+
+        async function botTurn() {
+            document.getElementById('status').innerText = "Oliver is thinking...";
+            await new Promise(r => setTimeout(r, 1000));
+            
+            // Oliver Logic: Draw from deck
+            botHand.push(deck.pop());
+            render();
+            await new Promise(r => setTimeout(r, 800));
+            
+            // Oliver Logic: Discard his highest value card
+            botHand.sort((a,b) => b.v - a.v);
+            discardPile.push(botHand.splice(0, 1)[0]);
+            
+            turn = 'player';
+            document.getElementById('status').innerText = "Your turn! Draw a card.";
+            render();
+        }
+
+        function sortHand(type) {
+            const rOrder = {'A':1, '2':2, '3':3, '4':4, '5':5, '6':6, '7':7, '8':8, '9':9, '10':10, 'J':11, 'Q':12, 'K':13};
+            playerHand.sort((a,b) => {
+                if(type==='suit' && a.s !== b.s) return a.s.localeCompare(b.s);
+                return rOrder[a.r] - rOrder[b.r];
+            });
+            render();
+        }
+
+        function declareHand() {
+            const bPoints = botHand.reduce((s, c) => s + c.v, 0);
+            pMatchScore += bPoints;
+            document.getElementById('p-score').innerText = pMatchScore;
+            
+            document.getElementById('win-msg').innerText = "Victory!";
+            document.getElementById('win-details').innerText = `You won the round! Oliver was caught with ${bPoints} points in his hand.`;
+            document.getElementById('end-modal').style.display = 'flex';
+        }
+    </script>
+</body>
+</html>
